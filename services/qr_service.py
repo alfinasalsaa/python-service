@@ -8,6 +8,11 @@ import fitz  # PyMuPDF
 import logging
 from PIL import Image
 import os
+from datetime import datetime
+import hashlib
+import os
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
 
 # Setup detailed logging
 logging.basicConfig(level=logging.DEBUG)
@@ -15,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 class QRService:
     def __init__(self):
+        self.private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048
+        )
         logger.info("🔧 QR Service initialized (DEBUG VERSION)")
         self.test_opencv()
     
@@ -271,13 +280,36 @@ class QRService:
         required_fields = ['transaction_id', 'document_hash', 'signature']
         return all(field in data for field in required_fields)
     
-    def _get_mock_qr_data(self):
-        """Return mock QR data for testing"""
+    def _get_mock_qr_data(self, file_path='dummy.txt'):
+        """Return dynamically generated mock QR data for testing"""
+        # 1. Buat dummy file jika belum ada
+        if not os.path.exists(file_path):
+            with open(file_path, 'w') as f:
+                f.write("This is a test document for QR verification.")
+
+        # 2. Baca konten file & hash
+        with open(file_path, 'rb') as f:
+            file_data = f.read()
+
+        # 3. Buat hash dokumen (SHA-256)
+        document_hash = hashlib.sha256(file_data).hexdigest()
+
+        # 4. Tanda tangani hash tersebut dengan RSA (PKCS#1 v1.5)
+        signature = self.private_key.sign(
+            bytes.fromhex(document_hash),
+            padding.PKCS1v15(),
+            hashes.SHA256()
+        )
+
+        # 5. Encode hasil ke format QR (hex string)
+        signature_hex = signature.hex()
+
+        # 6. Return struktur data QR yang valid
         return {
-            'transaction_id': 'MOCK_TRX_20250707_001',
-            'document_hash': 'mock_hash_abcdef123456789',
-            'signature': 'mock_signature_fedcba987654321',
-            'timestamp': '2025-07-07 12:00:00',
+            'transaction_id': f'MOCK_TRX_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
+            'document_hash': document_hash,
+            'signature': signature_hex,
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'verification_url': 'http://localhost:5000/verify',
-            'mock_mode': True  # Flag to indicate this is mock data
+            'mock_mode': True
         }

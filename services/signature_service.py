@@ -132,29 +132,44 @@ class SignatureService:
             # Fallback to binary hash (old method)
             return self._binary_file_hash(file_path)
     
+    # def generate_document_hash_for_verification(self, file_path):
+    #     """
+    #     🔧 FIXED: Generate hash for verification using the SAME method as signing
+    #     This ensures consistency between signing and verification
+    #     """
+    #     try:
+    #         # Use the exact same method as signing
+    #         content = self._extract_document_content(file_path)
+            
+    #         # Generate hash from content
+    #         sha256_hash = hashlib.sha256()
+    #         sha256_hash.update(content.encode('utf-8'))
+            
+    #         hash_result = sha256_hash.hexdigest()
+    #         print(f"🔍 Verification hash: {hash_result[:16]}...")
+    #         print(f"📄 Content preview: {content[:100]}...")
+            
+    #         return hash_result
+            
+    #     except Exception as e:
+    #         print(f"❌ Error generating verification hash: {str(e)}")
+    #         # Use same fallback as signing method
+    #         return self._binary_file_hash(file_path)
+
     def generate_document_hash_for_verification(self, file_path):
         """
-        🔧 FIXED: Generate hash for verification using the SAME method as signing
-        This ensures consistency between signing and verification
+        Generate SHA-256 hash based on full binary content of the PDF file.
         """
         try:
-            # Use the exact same method as signing
-            content = self._extract_document_content(file_path)
-            
-            # Generate hash from content
-            sha256_hash = hashlib.sha256()
-            sha256_hash.update(content.encode('utf-8'))
-            
-            hash_result = sha256_hash.hexdigest()
-            print(f"🔍 Verification hash: {hash_result[:16]}...")
-            print(f"📄 Content preview: {content[:100]}...")
-            
+            with open(file_path, 'rb') as f:
+                file_bytes = f.read()
+            hash_result = hashlib.sha256(file_bytes).hexdigest()
+            print(f"✅ Binary verification hash: {hash_result[:16]}...")
             return hash_result
-            
         except Exception as e:
-            print(f"❌ Error generating verification hash: {str(e)}")
-            # Use same fallback as signing method
-            return self._binary_file_hash(file_path)
+            print(f"❌ Error hashing binary file: {e}")
+            return ''
+
     
     def _binary_file_hash(self, file_path):
         """Original binary file hashing method (fallback)"""
