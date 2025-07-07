@@ -7,6 +7,7 @@ from services.verification_service import VerificationService
 from services.qr_service import QRService
 from services.pdf_service import PDFService
 from datetime import datetime
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -172,7 +173,8 @@ def verify_document():
         logger.info("📋 Step 2: Parsing QR data...")
         original_hash = qr_data.get('document_hash')
         signature_hex = qr_data.get('signature')
-        
+
+
         if not original_hash or not signature_hex:
             return jsonify({
                 'success': False,
@@ -185,6 +187,9 @@ def verify_document():
         # Step 3: Generate current document hash (WITHOUT QR code area)
         logger.info("🔐 Step 3: Generating current document hash...")
         current_hash = signature_service.generate_document_hash_for_verification(file_path)
+        # current_qr_data = qr_service.extract_qr_from_pdf(file_path)
+        # current_hash = current_qr_data.get('document_hash')
+
         logger.info(f"📄 Current hash: {current_hash[:16]}...")
 
         # Step 4: Check document integrity
